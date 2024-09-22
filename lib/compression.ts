@@ -1,4 +1,5 @@
 import zlib from 'zlib'
+import { compress as zstd_compress, decompress as zstd_decompress } from '@mongodb-js/zstd';
 import snappy from 'snappyjs'
 import { compress as brotliCompress, decompress as brotliDecompress } from 'brotli-wasm'
 
@@ -30,6 +31,10 @@ export const PARQUET_COMPRESSION_METHODS: PARQUET_COMPRESSION_METHODS = {
   'BROTLI': {
     deflate: deflate_brotli,
     inflate: inflate_brotli
+  },
+  'ZSTD': {
+    deflate: deflate_zstd,
+    inflate: inflate_zstd
   }
 };
 
@@ -68,6 +73,16 @@ async function deflate_brotli(value: Uint8Array) {
   return Buffer.from(compressedContent);
 }
 
+
+async function deflate_zstd(value: Buffer | Uint8Array): Promise<Buffer> {
+  if (value instanceof Uint8Array && value.constructor === Uint8Array) {
+    return zstd_compress(Buffer.from(value), 3);
+  } else if(value instanceof Buffer) {
+    return zstd_compress(value as Buffer, 3);
+  }
+  throw 'invalid value type';
+}
+
 /**
  * Inflate a value using compression method `method`
  */
@@ -95,6 +110,15 @@ function inflate_snappy(value: ArrayBuffer | Buffer | Uint8Array) {
 async function inflate_brotli(value: Uint8Array) {
   const uncompressedContent = await brotliDecompress(value)
   return Buffer.from(uncompressedContent);
+}
+
+async function inflate_zstd(value: Buffer | Uint8Array): Promise<Buffer> {
+  if (value instanceof Uint8Array && value.constructor === Uint8Array) {
+    return zstd_decompress(Buffer.from(value));
+  } else if(value instanceof Buffer) {
+    return zstd_decompress(value);
+  }
+  throw 'invalid value type';
 }
 
 function buffer_from_result(result: ArrayBuffer | Buffer | Uint8Array): Buffer {
