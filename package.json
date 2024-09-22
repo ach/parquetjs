@@ -90,6 +90,8 @@
     "dist/**/*",
     "parquet.thrift",
     "*.md",
-    "docs/**/*"
+    "docs/**/*",
+    "lib/**/*",
+    "package.json"
   ]
 }
